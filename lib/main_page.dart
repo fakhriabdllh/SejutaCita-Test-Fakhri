@@ -29,11 +29,10 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    var height = MediaQuery.of(context).size.height;
     return Scaffold(
       body: _pages[_selectedNavbar],
       bottomNavigationBar: SizedBox(
-        height: height / 10,
+        height: 80,
         child: Theme(
           data: Theme.of(context).copyWith(
               canvasColor: const Color(0xff1a1a1a),

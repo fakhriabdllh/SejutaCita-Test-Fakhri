@@ -201,7 +201,6 @@ class _IssuesSearchState extends State<IssuesSearch> {
                         Expanded(
                             child: Container(
                                 height: 30,
-                                padding: const EdgeInsets.all(2),
                                 alignment: Alignment.centerLeft,
                                 child: TextField(
                                   cursorColor: Colors.grey[400],

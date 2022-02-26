@@ -21,11 +21,7 @@ class _IssuesState extends State<Issues> {
 
   bool statusSwitch = true;
   bool isLoading = false;
-
-  int _currentMax = 10;
-
   List issues = [];
-  List lazyissues = [];
   List jump = [];
 
   final jumpController = ItemScrollController();
@@ -46,9 +42,6 @@ class _IssuesState extends State<Issues> {
         issues = data;
         isLoading = false;
       });
-      for (int i = 0; i < 10; i++) {
-        lazyissues.add(issues[i]);
-      }
     } else {
       issues = [];
       isLoading = false;
@@ -76,15 +69,6 @@ class _IssuesState extends State<Issues> {
     }
   }
 
-  //UPDATE LAZY DATA
-  _getMoreData(a, b) {
-    for (int i = _currentMax; i < _currentMax + 10; i++) {
-      a.add(b[i]);
-    }
-    _currentMax = _currentMax + 10;
-    setState(() {});
-  }
-
   //JUMP ISSUES
   Future scrollToIssues(x) async {
     if (x > 0) {
@@ -106,12 +90,6 @@ class _IssuesState extends State<Issues> {
   void initState() {
     super.initState();
     fetchIssues();
-    _jumpController.addListener(() {
-      if (_jumpController.position.pixels ==
-          _jumpController.position.maxScrollExtent) {
-        _getMoreData(lazyissues, issues);
-      }
-    });
   }
 
 //-----------------------------------------------------------------------------------
@@ -125,9 +103,9 @@ class _IssuesState extends State<Issues> {
       child: ListView.builder(
         controller: _jumpController,
         itemExtent: 80,
-        itemCount: lazyissues.length,
+        itemCount: issues.length,
         itemBuilder: (context, i) {
-          return (i != lazyissues.length)
+          return (i != issues.length)
               //ISSUES WIDGET
               ? Container(
                   width: width,
@@ -194,7 +172,7 @@ class _IssuesState extends State<Issues> {
     //ISSUES INDEX LIST
     var issuesindex = Column(children: [
       SizedBox(
-        height: height - 215,
+        height: height - 245,
         width: width,
         child: ScrollablePositionedList.builder(
           shrinkWrap: true,
@@ -281,7 +259,7 @@ class _IssuesState extends State<Issues> {
       //PAGE BUTTON
       Container(
         width: width,
-        height: 20,
+        height: 35,
         margin: const EdgeInsets.only(top: 5, bottom: 5),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,

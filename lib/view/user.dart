@@ -21,11 +21,7 @@ class _UserState extends State<User> {
 
   bool statusSwitch = true;
   bool isLoading = false;
-
-  int _currentMax = 10;
-
   List user = [];
-  List lazyUser = [];
   List jump = [];
 
   final jumpController = ItemScrollController();
@@ -46,9 +42,6 @@ class _UserState extends State<User> {
         user = data;
         isLoading = false;
       });
-      for (int i = 0; i < 10; i++) {
-        lazyUser.add(user[i]);
-      }
     } else {
       user = [];
       isLoading = false;
@@ -76,15 +69,6 @@ class _UserState extends State<User> {
     }
   }
 
-  //UPDATE LAZY DATA
-  _getMoreData(a, b) {
-    for (int i = _currentMax; i < _currentMax + 10; i++) {
-      a.add(b[i]);
-    }
-    _currentMax = _currentMax + 10;
-    setState(() {});
-  }
-
   //JUMP User
   Future scrollToUser(x) async {
     if (x > 0) {
@@ -106,12 +90,6 @@ class _UserState extends State<User> {
   void initState() {
     super.initState();
     fetchUser();
-    _jumpController.addListener(() {
-      if (_jumpController.position.pixels ==
-          _jumpController.position.maxScrollExtent) {
-        _getMoreData(lazyUser, user);
-      }
-    });
   }
 
 //-----------------------------------------------------------------------------------
@@ -125,9 +103,9 @@ class _UserState extends State<User> {
       child: ListView.builder(
         controller: _jumpController,
         itemExtent: 80,
-        itemCount: lazyUser.length,
+        itemCount: user.length,
         itemBuilder: (context, i) {
-          return (i != lazyUser.length)
+          return (i != user.length)
               //User WIDGET
               ? Container(
                   width: width,
@@ -182,7 +160,7 @@ class _UserState extends State<User> {
     //User INDEX LIST
     var userindex = Column(children: [
       SizedBox(
-        height: height - 215,
+        height: height - 245,
         width: width,
         child: ScrollablePositionedList.builder(
           shrinkWrap: true,
@@ -258,7 +236,7 @@ class _UserState extends State<User> {
       //PAGE BUTTON
       Container(
         width: width,
-        height: 20,
+        height: 35,
         margin: const EdgeInsets.only(top: 5, bottom: 5),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -298,7 +276,7 @@ class _UserState extends State<User> {
                               child: Text(
                                 (j > 0) ? (j * 5).toString() : "1",
                                 style: const TextStyle(
-                                    color: Colors.white, fontSize: 13),
+                                    color: Colors.white, fontSize: 15),
                               ),
                             ),
                           )

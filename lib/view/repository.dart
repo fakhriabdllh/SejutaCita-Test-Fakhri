@@ -22,11 +22,7 @@ class _RepositoryState extends State<Repository> {
 
   bool statusSwitch = true;
   bool isLoading = false;
-
-  int _currentMax = 10;
-
   List repository = [];
-  List lazyRepository = [];
   List jump = [];
 
   final jumpController = ItemScrollController();
@@ -47,9 +43,6 @@ class _RepositoryState extends State<Repository> {
         repository = data;
         isLoading = false;
       });
-      for (int i = 0; i < 10; i++) {
-        lazyRepository.add(repository[i]);
-      }
     } else {
       repository = [];
       isLoading = false;
@@ -77,15 +70,6 @@ class _RepositoryState extends State<Repository> {
     }
   }
 
-  //UPDATE LAZY DATA
-  _getMoreData(a, b) {
-    for (int i = _currentMax; i < _currentMax + 10; i++) {
-      a.add(b[i]);
-    }
-    _currentMax = _currentMax + 10;
-    setState(() {});
-  }
-
   //JUMP Repository
   Future scrollToRepository(x) async {
     if (x > 0) {
@@ -107,12 +91,6 @@ class _RepositoryState extends State<Repository> {
   void initState() {
     super.initState();
     fetchRepository();
-    _jumpController.addListener(() {
-      if (_jumpController.position.pixels ==
-          _jumpController.position.maxScrollExtent) {
-        _getMoreData(lazyRepository, repository);
-      }
-    });
   }
 
 //-----------------------------------------------------------------------------------
@@ -126,9 +104,9 @@ class _RepositoryState extends State<Repository> {
       child: ListView.builder(
         controller: _jumpController,
         itemExtent: 80,
-        itemCount: lazyRepository.length,
+        itemCount: repository.length,
         itemBuilder: (context, i) {
-          return (i != lazyRepository.length)
+          return (i != repository.length)
               //Repository WIDGET
               ? Container(
                   width: width,
@@ -235,7 +213,7 @@ class _RepositoryState extends State<Repository> {
     //Repository INDEX LIST
     var repositoryindex = Column(children: [
       SizedBox(
-        height: height - 215,
+        height: height - 245,
         width: width,
         child: ScrollablePositionedList.builder(
           shrinkWrap: true,
@@ -360,7 +338,7 @@ class _RepositoryState extends State<Repository> {
       //PAGE BUTTON
       Container(
         width: width,
-        height: 20,
+        height: 35,
         margin: const EdgeInsets.only(top: 5, bottom: 5),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -400,7 +378,7 @@ class _RepositoryState extends State<Repository> {
                               child: Text(
                                 (j > 0) ? (j * 5).toString() : "1",
                                 style: const TextStyle(
-                                    color: Colors.white, fontSize: 13),
+                                    color: Colors.white, fontSize: 15),
                               ),
                             ),
                           )

@@ -1,6 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.sejuta_cita_test">
+<<<<<<< HEAD
     <uses-permission android:name="android.permission.INTERNET"/>
+=======
+   <uses-permission android:name="android.permission.INTERNET"/>
+>>>>>>> 18f6c0f665ec4f8827abd203cd62436b86fb3652
    <application
         android:label="sejuta_cita_test"
         android:name="${applicationName}"

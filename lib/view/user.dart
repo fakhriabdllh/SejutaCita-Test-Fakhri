@@ -2,6 +2,7 @@
 //082176619855
 //mgsmfakhria@gmail.com
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -21,12 +22,19 @@ class _UserState extends State<User> {
 
   bool statusSwitch = true;
   bool isLoading = false;
+  bool getLoading = false;
   List user = [];
+  List lazyUser = [];
   List jump = [];
+
+  int currentMax = 0;
+
+  // ignore: prefer_typing_uninitialized_variables
+  var data;
 
   final jumpController = ItemScrollController();
   final ScrollController _jumpController = ScrollController();
-  final ScrollController _jumpController2 = ScrollController();
+  final ScrollController _scrollController = ScrollController();
 
   //GET User DATA
   fetchUser() async {
@@ -37,13 +45,18 @@ class _UserState extends State<User> {
     var response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
-      var data = json.decode(response.body)['items'];
+      data = json.decode(response.body)['items'];
+
       setState(() {
         user = data;
+        for (int x = currentMax; x < currentMax + 10; x++) {
+          lazyUser.add(data[x]);
+        }
         isLoading = false;
       });
     } else {
       user = [];
+      lazyUser = [];
       isLoading = false;
     }
   }
@@ -53,7 +66,7 @@ class _UserState extends State<User> {
     jump = List.generate(user.length ~/ 5, (i) => "${i + 1}");
 
     if (x == 0) {
-      if (isLoading || user.isEmpty) {
+      if (isLoading || lazyUser.isEmpty) {
         return const CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(Colors.white));
       } else {
@@ -78,6 +91,27 @@ class _UserState extends State<User> {
     }
   }
 
+  _getMoreData(a, b) {
+    currentMax = currentMax + 10;
+    setState(() {
+      getLoading = true;
+    });
+    if (currentMax < user.length) {
+      for (int i = currentMax; i < currentMax + 10; i++) {
+        a.add(b[i]);
+      }
+      setState(() {
+        getLoading = false;
+      });
+    } else {
+      a = [];
+      getLoading = false;
+    }
+    setState(() {
+      getLoading = false;
+    });
+  }
+
   //DISPOSE
   @override
   void dispose() {
@@ -88,8 +122,14 @@ class _UserState extends State<User> {
   //INIT
   @override
   void initState() {
-    super.initState();
     fetchUser();
+    super.initState();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels ==
+          _scrollController.position.maxScrollExtent) {
+        _getMoreData(lazyUser, data);
+      }
+    });
   }
 
 //-----------------------------------------------------------------------------------
@@ -101,13 +141,22 @@ class _UserState extends State<User> {
     //User LAZY LIST
     var userlazy = Expanded(
       child: ListView.builder(
-        controller: _jumpController,
+        controller: _scrollController,
         itemExtent: 80,
-        itemCount: user.length,
+        itemCount: lazyUser.length + 1,
         itemBuilder: (context, i) {
-          return (i != user.length)
-              //User WIDGET
-              ? Container(
+          return (i == lazyUser.length)
+              //USER WIDGET
+              ? (getLoading == true)
+                  ? const CupertinoActivityIndicator()
+                  : SizedBox(
+                      child: Center(
+                      child: Text(
+                        'End Of Data',
+                        style: TextStyle(fontSize: 15, color: Colors.grey[800]),
+                      ),
+                    ))
+              : Container(
                   width: width,
                   margin: const EdgeInsets.only(bottom: 5),
                   child: Row(
@@ -117,7 +166,8 @@ class _UserState extends State<User> {
                         margin: const EdgeInsets.only(right: 5),
                         width: 60,
                         height: 60,
-                        child: Image.network(user[i]['avatar_url'].toString()),
+                        child:
+                            Image.network(lazyUser[i]['avatar_url'].toString()),
                       ),
                       Expanded(
                         child: Column(
@@ -128,7 +178,7 @@ class _UserState extends State<User> {
                                 height: 35,
                                 alignment: Alignment.centerLeft,
                                 child: Text(
-                                  user[i]['login'].toString(),
+                                  lazyUser[i]['login'].toString(),
                                   style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 13,
@@ -141,7 +191,7 @@ class _UserState extends State<User> {
                                 height: 15,
                                 alignment: Alignment.centerLeft,
                                 child: Text(
-                                  user[i]['type'].toString(),
+                                  lazyUser[i]['type'].toString(),
                                   style: const TextStyle(
                                       color: Colors.white, fontSize: 12),
                                 )),
@@ -150,9 +200,7 @@ class _UserState extends State<User> {
                       ),
                     ],
                   ),
-                )
-              //BLANK
-              : const SizedBox();
+                );
         },
       ),
     );
@@ -254,7 +302,7 @@ class _UserState extends State<User> {
             Expanded(
               child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  controller: _jumpController2,
+                  controller: _jumpController,
                   itemExtent: 50,
                   itemCount: jump.length,
                   itemBuilder: (context, j) {

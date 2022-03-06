@@ -2,6 +2,7 @@
 //082176619855
 //mgsmfakhria@gmail.com
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -22,12 +23,19 @@ class _RepositoryState extends State<Repository> {
 
   bool statusSwitch = true;
   bool isLoading = false;
+  bool getLoading = false;
   List repository = [];
+  List lazyRepository = [];
   List jump = [];
+
+  int currentMax = 0;
+
+  // ignore: prefer_typing_uninitialized_variables
+  var data;
 
   final jumpController = ItemScrollController();
   final ScrollController _jumpController = ScrollController();
-  final ScrollController _jumpController2 = ScrollController();
+  final ScrollController _scrollController = ScrollController();
 
   //GET Repository DATA
   fetchRepository() async {
@@ -38,13 +46,17 @@ class _RepositoryState extends State<Repository> {
     var response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
-      var data = json.decode(response.body)['items'];
+      data = json.decode(response.body)['items'];
       setState(() {
         repository = data;
+        for (int x = currentMax; x < currentMax + 10; x++) {
+          lazyRepository.add(data[x]);
+        }
         isLoading = false;
       });
     } else {
       repository = [];
+      lazyRepository = [];
       isLoading = false;
     }
   }
@@ -54,7 +66,7 @@ class _RepositoryState extends State<Repository> {
     jump = List.generate(repository.length ~/ 5, (i) => "${i + 1}");
 
     if (x == 0) {
-      if (isLoading || repository.isEmpty) {
+      if (isLoading || lazyRepository.isEmpty) {
         return const CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(Colors.white));
       } else {
@@ -79,6 +91,27 @@ class _RepositoryState extends State<Repository> {
     }
   }
 
+  _getMoreData(a, b) {
+    currentMax = currentMax + 10;
+    setState(() {
+      getLoading = true;
+    });
+    if (currentMax < repository.length) {
+      for (int i = currentMax; i < currentMax + 10; i++) {
+        a.add(b[i]);
+      }
+      setState(() {
+        getLoading = false;
+      });
+    } else {
+      a = [];
+      getLoading = false;
+    }
+    setState(() {
+      getLoading = false;
+    });
+  }
+
   //DISPOSE
   @override
   void dispose() {
@@ -91,6 +124,12 @@ class _RepositoryState extends State<Repository> {
   void initState() {
     super.initState();
     fetchRepository();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels ==
+          _scrollController.position.maxScrollExtent) {
+        _getMoreData(lazyRepository, data);
+      }
+    });
   }
 
 //-----------------------------------------------------------------------------------
@@ -102,13 +141,22 @@ class _RepositoryState extends State<Repository> {
     //Repository LAZY LIST
     var repositorylazy = Expanded(
       child: ListView.builder(
-        controller: _jumpController,
+        controller: _scrollController,
         itemExtent: 80,
-        itemCount: repository.length,
+        itemCount: lazyRepository.length + 1,
         itemBuilder: (context, i) {
-          return (i != repository.length)
-              //Repository WIDGET
-              ? Container(
+          return (i == lazyRepository.length)
+              //ISSUES WIDGET
+              ? (getLoading == true)
+                  ? const CupertinoActivityIndicator()
+                  : SizedBox(
+                      child: Center(
+                      child: Text(
+                        'End Of Data',
+                        style: TextStyle(fontSize: 15, color: Colors.grey[800]),
+                      ),
+                    ))
+              : Container(
                   width: width,
                   margin: const EdgeInsets.only(bottom: 5),
                   child: Row(
@@ -118,8 +166,9 @@ class _RepositoryState extends State<Repository> {
                         margin: const EdgeInsets.only(right: 5),
                         width: 60,
                         height: 60,
-                        child: Image.network(
-                            repository[i]['owner']['avatar_url'].toString()),
+                        child: Image.network(lazyRepository[i]['owner']
+                                ['avatar_url']
+                            .toString()),
                       ),
                       Expanded(
                         child: Column(
@@ -130,7 +179,7 @@ class _RepositoryState extends State<Repository> {
                                 height: 35,
                                 alignment: Alignment.centerLeft,
                                 child: Text(
-                                  repository[i]['name'].toString(),
+                                  lazyRepository[i]['name'].toString(),
                                   style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 13,
@@ -143,7 +192,7 @@ class _RepositoryState extends State<Repository> {
                                 height: 15,
                                 alignment: Alignment.centerLeft,
                                 child: Text(
-                                  repository[i]['updated_at'].toString(),
+                                  lazyRepository[i]['updated_at'].toString(),
                                   style: const TextStyle(
                                       color: Colors.white, fontSize: 10),
                                 )),
@@ -183,18 +232,22 @@ class _RepositoryState extends State<Repository> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              ': ' + repository[i]['watchers_count'].toString(),
+                              ': ' +
+                                  lazyRepository[i]['watchers_count']
+                                      .toString(),
                               style: const TextStyle(
                                   color: Colors.white, fontSize: 10),
                             ),
                             Text(
                               ': ' +
-                                  repository[i]['stargazers_count'].toString(),
+                                  lazyRepository[i]['stargazers_count']
+                                      .toString(),
                               style: const TextStyle(
                                   color: Colors.white, fontSize: 10),
                             ),
                             Text(
-                              ': ' + repository[i]['forks_count'].toString(),
+                              ': ' +
+                                  lazyRepository[i]['forks_count'].toString(),
                               style: const TextStyle(
                                   color: Colors.white, fontSize: 10),
                             ),
@@ -203,9 +256,7 @@ class _RepositoryState extends State<Repository> {
                       ),
                     ],
                   ),
-                )
-              //BLANK
-              : const SizedBox();
+                );
         },
       ),
     );
@@ -356,7 +407,7 @@ class _RepositoryState extends State<Repository> {
             Expanded(
               child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  controller: _jumpController2,
+                  controller: _jumpController,
                   itemExtent: 50,
                   itemCount: jump.length,
                   itemBuilder: (context, j) {

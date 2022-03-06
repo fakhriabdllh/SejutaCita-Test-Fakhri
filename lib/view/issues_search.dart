@@ -14,63 +14,42 @@ class IssuesSearch extends StatefulWidget {
 }
 
 class _IssuesSearchState extends State<IssuesSearch> {
-  List issues = [];
-  List issuesTitle = [];
-  List issuesId = [];
   List foundIssues = [];
+  bool responseStatus = false;
+  bool founded = false;
 
   var searchController = TextEditingController();
 
-  //GET ISSUES DATA
-  fetchIssues() async {
-    issuesTitle.clear();
-    foundIssues.clear();
-
-    var url = "https://api.github.com/search/issues?q=doraemon";
-    var response = await http.get(Uri.parse(url));
-
-    if (response.statusCode == 200) {
-      var data = json.decode(response.body)['items'];
-      setState(() {
-        issues = data;
-        for (int i = 0; i < issues.length; i++) {
-          issuesTitle.add(issues[i]['title']);
-        }
-      });
-    } else {
-      issues = [];
-      issuesTitle.clear();
-    }
-  }
-
   //SEARCH FUNC
-  onSearch(search) {
+  onSearch(search) async {
     setState(() {
       foundIssues.clear();
+      responseStatus = false;
     });
-    for (int i = 0; i < issues.length; i++) {
-      if (issuesTitle[i]
-          .toString()
-          .toLowerCase()
-          .contains(search.toString().toLowerCase())) {
-        setState(() {
-          foundIssues.add(issues[i]);
-        });
+    var url = "https://api.github.com/search/issues?q=doraemon";
+    var response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      setState(() {
+        responseStatus = true;
+      });
+      var foundedData = json.decode(response.body)['items'];
+      for (int i = 0; i < foundedData.length; i++) {
+        if (foundedData[i]['title']
+            .toString()
+            .toLowerCase()
+            .contains(search.toString().toLowerCase())) {
+          setState(() {
+            foundIssues.add(foundedData[i]);
+          });
+        }
       }
+      founded = true;
+    } else {
+      setState(() {
+        responseStatus = false;
+        founded = false;
+      });
     }
-  }
-
-  //DISPOSE
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  //INIT
-  @override
-  void initState() {
-    super.initState();
-    fetchIssues();
   }
 
 //-----------------------------------------------------------------------------------
@@ -227,16 +206,29 @@ class _IssuesSearchState extends State<IssuesSearch> {
             //BLANK
             Container(height: 20),
             //BUILD LIST
-            (foundIssues.isNotEmpty)
-                ? issuesFounded
-                : Expanded(
-                    child: Center(
-                      child: Text(
-                        'No Result Found',
-                        style: TextStyle(fontSize: 30, color: Colors.grey[800]),
-                      ),
-                    ),
-                  )
+            (responseStatus == true)
+                ? (founded == false)
+                    ? Expanded(
+                        child: Center(
+                          child: Text(
+                            'No Result Found',
+                            style: TextStyle(
+                                fontSize: 30, color: Colors.grey[800]),
+                          ),
+                        ),
+                      )
+                    : issuesFounded
+                : (responseStatus == false)
+                    ? Expanded(
+                        child: Center(
+                          child: Text(
+                            'API not connected',
+                            style: TextStyle(
+                                fontSize: 30, color: Colors.grey[800]),
+                          ),
+                        ),
+                      )
+                    : const SizedBox()
           ],
         ),
       ),

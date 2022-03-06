@@ -2,6 +2,7 @@
 //082176619855
 //mgsmfakhria@gmail.com
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -21,12 +22,18 @@ class _IssuesState extends State<Issues> {
 
   bool statusSwitch = true;
   bool isLoading = false;
+  bool getLoading = false;
   List issues = [];
+  List lazyIssues = [];
   List jump = [];
+
+  int currentMax = 0;
+  // ignore: prefer_typing_uninitialized_variables
+  var data;
 
   final jumpController = ItemScrollController();
   final ScrollController _jumpController = ScrollController();
-  final ScrollController _jumpController2 = ScrollController();
+  final ScrollController _scrollController = ScrollController();
 
   //GET ISSUES DATA
   fetchIssues() async {
@@ -37,13 +44,18 @@ class _IssuesState extends State<Issues> {
     var response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
-      var data = json.decode(response.body)['items'];
+      data = json.decode(response.body)['items'];
+
       setState(() {
         issues = data;
+        for (int x = currentMax; x < currentMax + 10; x++) {
+          lazyIssues.add(data[x]);
+        }
         isLoading = false;
       });
     } else {
       issues = [];
+      lazyIssues = [];
       isLoading = false;
     }
   }
@@ -51,9 +63,8 @@ class _IssuesState extends State<Issues> {
   //LOADING ANIMATION
   loadData(x, a, b) {
     jump = List.generate(issues.length ~/ 5, (i) => "${i + 1}");
-
     if (x == 0) {
-      if (isLoading || issues.isEmpty) {
+      if (isLoading || lazyIssues.isEmpty) {
         return const CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(Colors.white));
       } else {
@@ -78,6 +89,27 @@ class _IssuesState extends State<Issues> {
     }
   }
 
+  _getMoreData(a, b) {
+    currentMax = currentMax + 10;
+    setState(() {
+      getLoading = true;
+    });
+    if (currentMax < issues.length) {
+      for (int i = currentMax; i < currentMax + 10; i++) {
+        a.add(b[i]);
+      }
+      setState(() {
+        getLoading = false;
+      });
+    } else {
+      a = [];
+      getLoading = false;
+    }
+    setState(() {
+      getLoading = false;
+    });
+  }
+
   //DISPOSE
   @override
   void dispose() {
@@ -90,6 +122,12 @@ class _IssuesState extends State<Issues> {
   void initState() {
     super.initState();
     fetchIssues();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels ==
+          _scrollController.position.maxScrollExtent) {
+        _getMoreData(lazyIssues, data);
+      }
+    });
   }
 
 //-----------------------------------------------------------------------------------
@@ -101,13 +139,22 @@ class _IssuesState extends State<Issues> {
     //ISSUES LAZY LIST
     var issueslazy = Expanded(
       child: ListView.builder(
-        controller: _jumpController,
+        controller: _scrollController,
         itemExtent: 80,
-        itemCount: issues.length,
+        itemCount: lazyIssues.length + 1,
         itemBuilder: (context, i) {
-          return (i != issues.length)
+          return (i == lazyIssues.length)
               //ISSUES WIDGET
-              ? Container(
+              ? (getLoading == true)
+                  ? const CupertinoActivityIndicator()
+                  : SizedBox(
+                      child: Center(
+                      child: Text(
+                        'End Of Data',
+                        style: TextStyle(fontSize: 15, color: Colors.grey[800]),
+                      ),
+                    ))
+              : Container(
                   width: width,
                   margin: const EdgeInsets.only(bottom: 5),
                   child: Row(
@@ -118,7 +165,7 @@ class _IssuesState extends State<Issues> {
                         width: 60,
                         height: 60,
                         child: Image.network(
-                            issues[i]['user']['avatar_url'].toString()),
+                            lazyIssues[i]['user']['avatar_url'].toString()),
                       ),
                       Expanded(
                         child: Column(
@@ -129,7 +176,7 @@ class _IssuesState extends State<Issues> {
                                 height: 35,
                                 alignment: Alignment.centerLeft,
                                 child: Text(
-                                  issues[i]['title'].toString(),
+                                  lazyIssues[i]['title'].toString(),
                                   style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 13,
@@ -142,7 +189,7 @@ class _IssuesState extends State<Issues> {
                                 height: 15,
                                 alignment: Alignment.centerLeft,
                                 child: Text(
-                                  issues[i]['updated_at'].toString(),
+                                  lazyIssues[i]['updated_at'].toString(),
                                   style: const TextStyle(
                                       color: Colors.white, fontSize: 10),
                                 )),
@@ -155,16 +202,14 @@ class _IssuesState extends State<Issues> {
                         width: 40,
                         alignment: Alignment.center,
                         child: Text(
-                          issues[i]['state'].toString(),
+                          lazyIssues[i]['state'].toString(),
                           style: const TextStyle(
                               color: Colors.white, fontSize: 12),
                         ),
                       ),
                     ],
                   ),
-                )
-              //BLANK
-              : const SizedBox();
+                );
         },
       ),
     );
@@ -277,7 +322,7 @@ class _IssuesState extends State<Issues> {
             Expanded(
               child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  controller: _jumpController2,
+                  controller: _jumpController,
                   itemExtent: 50,
                   itemCount: jump.length,
                   itemBuilder: (context, j) {

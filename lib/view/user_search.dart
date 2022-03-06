@@ -14,63 +14,42 @@ class UserSearch extends StatefulWidget {
 }
 
 class _UserSearchState extends State<UserSearch> {
-  List user = [];
-  List userName = [];
-  List userId = [];
   List foundUser = [];
+  bool responseStatus = false;
+  bool founded = false;
 
   var searchController = TextEditingController();
 
-  //GET user DATA
-  fetchuser() async {
-    userName.clear();
-    foundUser.clear();
-
-    var url = "https://api.github.com/search/users?q=doraemon";
-    var response = await http.get(Uri.parse(url));
-
-    if (response.statusCode == 200) {
-      var data = json.decode(response.body)['items'];
-      setState(() {
-        user = data;
-        for (int i = 0; i < user.length; i++) {
-          userName.add(user[i]['login']);
-        }
-      });
-    } else {
-      user = [];
-      userName.clear();
-    }
-  }
-
   //SEARCH FUNC
-  onSearch(search) {
+  onSearch(search) async {
     setState(() {
       foundUser.clear();
+      responseStatus = false;
     });
-    for (int i = 0; i < user.length; i++) {
-      if (userName[i]
-          .toString()
-          .toLowerCase()
-          .contains(search.toString().toLowerCase())) {
-        setState(() {
-          foundUser.add(user[i]);
-        });
+    var url = "https://api.github.com/search/users?q=doraemon";
+    var response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      setState(() {
+        responseStatus = true;
+      });
+      var foundedData = json.decode(response.body)['items'];
+      for (int i = 0; i < foundedData.length; i++) {
+        if (foundedData[i]['login']
+            .toString()
+            .toLowerCase()
+            .contains(search.toString().toLowerCase())) {
+          setState(() {
+            foundUser.add(foundedData[i]);
+          });
+        }
       }
+      founded = true;
+    } else {
+      setState(() {
+        responseStatus = false;
+        founded = false;
+      });
     }
-  }
-
-  //DISPOSE
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  //INIT
-  @override
-  void initState() {
-    super.initState();
-    fetchuser();
   }
 
 //-----------------------------------------------------------------------------------
@@ -215,16 +194,29 @@ class _UserSearchState extends State<UserSearch> {
             //BLANK
             Container(height: 20),
             //BUILD LIST
-            (foundUser.isNotEmpty)
-                ? userFounded
-                : Expanded(
-                    child: Center(
-                      child: Text(
-                        'No Result Found',
-                        style: TextStyle(fontSize: 30, color: Colors.grey[800]),
-                      ),
-                    ),
-                  )
+            (responseStatus == true)
+                ? (founded == false)
+                    ? Expanded(
+                        child: Center(
+                          child: Text(
+                            'No Result Found',
+                            style: TextStyle(
+                                fontSize: 30, color: Colors.grey[800]),
+                          ),
+                        ),
+                      )
+                    : userFounded
+                : (responseStatus == false)
+                    ? Expanded(
+                        child: Center(
+                          child: Text(
+                            'API not connected',
+                            style: TextStyle(
+                                fontSize: 30, color: Colors.grey[800]),
+                          ),
+                        ),
+                      )
+                    : const SizedBox()
           ],
         ),
       ),

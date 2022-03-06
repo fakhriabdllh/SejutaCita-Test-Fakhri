@@ -14,63 +14,42 @@ class RepositorySearch extends StatefulWidget {
 }
 
 class _RepositorySearchState extends State<RepositorySearch> {
-  List repository = [];
-  List repositoryName = [];
-  List repositoryId = [];
   List foundRepository = [];
+  bool responseStatus = false;
+  bool founded = false;
 
   var searchController = TextEditingController();
 
-  //GET repository DATA
-  fetchRepository() async {
-    repositoryName.clear();
-    foundRepository.clear();
-
-    var url = "https://api.github.com/search/repositories?q=doraemon";
-    var response = await http.get(Uri.parse(url));
-
-    if (response.statusCode == 200) {
-      var data = json.decode(response.body)['items'];
-      setState(() {
-        repository = data;
-        for (int i = 0; i < repository.length; i++) {
-          repositoryName.add(repository[i]['name']);
-        }
-      });
-    } else {
-      repository = [];
-      repositoryName.clear();
-    }
-  }
-
   //SEARCH FUNC
-  onSearch(search) {
+  onSearch(search) async {
     setState(() {
       foundRepository.clear();
+      responseStatus = false;
     });
-    for (int i = 0; i < repository.length; i++) {
-      if (repositoryName[i]
-          .toString()
-          .toLowerCase()
-          .contains(search.toString().toLowerCase())) {
-        setState(() {
-          foundRepository.add(repository[i]);
-        });
+    var url = "https://api.github.com/search/repositories?q=doraemon";
+    var response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      setState(() {
+        responseStatus = true;
+      });
+      var foundedData = json.decode(response.body)['items'];
+      for (int i = 0; i < foundedData.length; i++) {
+        if (foundedData[i]['name']
+            .toString()
+            .toLowerCase()
+            .contains(search.toString().toLowerCase())) {
+          setState(() {
+            foundRepository.add(foundedData[i]);
+          });
+        }
       }
+      founded = true;
+    } else {
+      setState(() {
+        responseStatus = false;
+        founded = false;
+      });
     }
-  }
-
-  //DISPOSE
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  //INIT
-  @override
-  void initState() {
-    super.initState();
-    fetchRepository();
   }
 
 //-----------------------------------------------------------------------------------
@@ -88,6 +67,7 @@ class _RepositorySearchState extends State<RepositorySearch> {
           return (foundRepository.isNotEmpty)
               ? Container(
                   width: width,
+                  height: 75,
                   margin: const EdgeInsets.only(bottom: 5),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -271,16 +251,29 @@ class _RepositorySearchState extends State<RepositorySearch> {
             //BLANK
             Container(height: 20),
             //BUILD LIST
-            (foundRepository.isNotEmpty)
-                ? repositoryFounded
-                : Expanded(
-                    child: Center(
-                      child: Text(
-                        'No Result Found',
-                        style: TextStyle(fontSize: 30, color: Colors.grey[800]),
-                      ),
-                    ),
-                  )
+            (responseStatus == true)
+                ? (founded == false)
+                    ? Expanded(
+                        child: Center(
+                          child: Text(
+                            'No Result Found',
+                            style: TextStyle(
+                                fontSize: 30, color: Colors.grey[800]),
+                          ),
+                        ),
+                      )
+                    : repositoryFounded
+                : (responseStatus == false)
+                    ? Expanded(
+                        child: Center(
+                          child: Text(
+                            'API not connected',
+                            style: TextStyle(
+                                fontSize: 30, color: Colors.grey[800]),
+                          ),
+                        ),
+                      )
+                    : const SizedBox()
           ],
         ),
       ),
